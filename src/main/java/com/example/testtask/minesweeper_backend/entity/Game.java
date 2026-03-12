@@ -10,16 +10,11 @@ import lombok.*;
 @AllArgsConstructor
 public class Game {
 
-    private UUID gameId;
-
+    private UUID id;
+    private int rows;
+    private int cols;
+    private int minesCount;
+    private Cell[][] board;
     private GameState state;
-
-    private Cell[][] mines;
-
-    public Game(UUID gameId, Cell[][] mines){
-        this.gameId = gameId;
-        this.state = GameState.ACTIVE;
-        this.mines = mines;
-    }
 
 }

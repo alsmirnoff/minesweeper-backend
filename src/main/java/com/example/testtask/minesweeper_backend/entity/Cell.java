@@ -7,11 +7,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Cell {
-
     private boolean revealed;
-
     private int minesAround;
-
     private boolean mine;
-
 }
