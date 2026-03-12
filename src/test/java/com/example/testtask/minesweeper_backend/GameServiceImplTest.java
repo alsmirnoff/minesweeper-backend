@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.checkerframework.checker.units.qual.g;
 import org.junit.jupiter.api.Test;
 
 import com.example.testtask.minesweeper_backend.dao.InMemoryGameRepository;
@@ -12,11 +11,28 @@ import com.example.testtask.minesweeper_backend.entity.Game;
 import com.example.testtask.minesweeper_backend.entity.GameState;
 import com.example.testtask.minesweeper_backend.service.impl.GameServiceImpl;
 
-public class BaseLogicTest {
+public class GameServiceImplTest {
 
     InMemoryGameRepository repository = new InMemoryGameRepository();
 
     GameServiceImpl service = new GameServiceImpl(repository);
+
+    @Test
+    public void testCreateGame() {
+        Game game = service.createGame(5, 4, 4);
+
+        assertNotNull(game);
+        assertEquals(5, game.getRows());
+        assertEquals(4, game.getCols());
+        assertNotNull(game.getBoard());
+    }
+
+    @Test
+    public void testRevealMine() {
+        Game game = service.createGame(1, 1, 1);
+        Game result = service.makeMove(game.getId(), 0, 0);
+        assertEquals(GameState.LOST, result.getState());
+    }
 
     @Test
     public void testGamePersistence() {

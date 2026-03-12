@@ -3,6 +3,8 @@ package com.example.testtask.minesweeper_backend.service.impl;
 import java.util.Random;
 import java.util.UUID;
 
+import org.springframework.stereotype.Service;
+
 import com.example.testtask.minesweeper_backend.dao.InMemoryGameRepository;
 import com.example.testtask.minesweeper_backend.entity.Cell;
 import com.example.testtask.minesweeper_backend.entity.Game;
@@ -11,6 +13,7 @@ import com.example.testtask.minesweeper_backend.service.GameService;
 
 import lombok.extern.slf4j.Slf4j;
 
+@Service
 @Slf4j
 public class GameServiceImpl implements GameService {
 
@@ -42,7 +45,7 @@ public class GameServiceImpl implements GameService {
 
         repository.save(game);
 
-        log.info("[Minesweeper Service] Creating a game of uuid={}", game.getId());
+        log.info("[Minesweeper Service] - Creating a game of uuid={}", game.getId());
         return game;
     }
 
@@ -51,12 +54,12 @@ public class GameServiceImpl implements GameService {
         Game game = repository.findById(id);
 
         if(game == null){
-            log.info("[Minesweeper Service] Game with uuid={} not found", id);
+            log.error("[Minesweeper Service] Game with uuid={} not found", id);
             throw new RuntimeException("Game not found");
         }
 
         if(game.getState() != GameState.ACTIVE) {
-            log.info("[Minesweeper Service] Game with uuid={} alredy end", id);
+            log.error("[Minesweeper Service] Game with uuid={} alredy end", id);
             throw new RuntimeException("Game alredy end");
         }
 
@@ -79,72 +82,74 @@ public class GameServiceImpl implements GameService {
                 minesPlaced++;
             }
         }
-        log.info("[Minesweeper Service] - Already placed mines for game of uuid={}", game.getId());
+        log.info("[Minesweeper Service] - Placed random mines for game of uuid={}", game.getId());
     }
 
     private void calculateMinesAround(Game game) {
         Cell[][] board = game.getBoard();
         for (int i = 0; i < game.getRows(); i++) {
             for (int j = 0; j < game.getCols(); j++) {
-                board[i][j].setMinesAround(minesNear(board, i, j));;
+                board[i][j].setMinesAround(minesNear(board, i, j));
             }
         }
+        log.info("[Minesweeper Service] - Calculating surroundings mines for game of uuid={}", game.getId());
     }
 
-    private int minesNear(Cell[][] board, int x, int y) {
+    private int minesNear(Cell[][] board, int row, int col) {
         int mines = 0;
-        mines += minesAt(board, x - 1, y - 1);
-        mines += minesAt(board, x - 1, y);
-        mines += minesAt(board, x - 1, y + 1);
-        mines += minesAt(board, x, y + 1);
-        mines += minesAt(board, x + 1, y + 1);
-        mines += minesAt(board, x + 1, y);
-        mines += minesAt(board, x + 1, y - 1);
-        mines += minesAt(board, x, y - 1);
+        mines += minesAt(board, col - 1, row - 1);
+        mines += minesAt(board, col - 1, row);
+        mines += minesAt(board, col - 1, row + 1);
+        mines += minesAt(board, col, row + 1);
+        mines += minesAt(board, col + 1, row + 1);
+        mines += minesAt(board, col + 1, row);
+        mines += minesAt(board, col + 1, row - 1);
+        mines += minesAt(board, col, row - 1);
         return mines;
     }
 
-    private int minesAt(Cell[][] board, int x, int y) {
-        if(y >= 0 && y < board[0].length && x >= 0 && x < board.length && board[x][y].isMine()) {
+
+    private int minesAt(Cell[][] board, int row, int col) {
+        if(row >= 0 && row < board[0].length && col >= 0 && col < board.length && board[col][row].isMine()) {
             return 1;
         } else {
             return 0;
         }
     }
 
-    private void revealArea(Cell[][] board, int x, int y) {
-        if(x < 0 || x >= board.length || y < 0 || y >= board[0].length) return;
+    private void revealArea(Cell[][] board, int row, int col) {
+        if(col < 0 || col >= board.length || row < 0 || row >= board[0].length) return;
 
-        Cell cell = board[x][y];
+        Cell cell = board[col][row];
 
         if(cell.isRevealed()) return;
 
         cell.setRevealed(true);
 
         if(cell.getMinesAround() == 0) {
-            revealArea(board, x - 1, y - 1);
-            revealArea(board, x - 1, y);
-            revealArea(board, x - 1, y + 1);
-            revealArea(board, x, y + 1);
-            revealArea(board, x + 1, y + 1);
-            revealArea(board, x + 1, y);
-            revealArea(board, x + 1, y - 1);
-            revealArea(board, x, y - 1);
+            revealArea(board, col - 1, row - 1);
+            revealArea(board, col - 1, row);
+            revealArea(board, col - 1, row + 1);
+            revealArea(board, col, row + 1);
+            revealArea(board, col + 1, row + 1);
+            revealArea(board, col + 1, row);
+            revealArea(board, col + 1, row - 1);
+            revealArea(board, col, row - 1);
         }
-    }   
+    }
 
     private void processTurnLogic(Game game, int row, int col){
         Cell[][] board = game.getBoard();
 
         if(row < 0 || row >= game.getRows() || col < 0 || col >= game.getCols()) {
-            log.info("[Minesweeper Service] - Illegal coordinates row={}, col={}", row, col);
+            log.warn("[Minesweeper Service] - Illegal coordinates row={}, col={}", row, col);
             throw new IllegalArgumentException("Illegal coordinates");
         }
 
         Cell clicked = board[row][col];
 
         if(clicked.isRevealed()) {
-            log.info("[Minesweeper Service] - Cell row={}, col={} already opened", row, col);
+            log.warn("[Minesweeper Service] - Cell row={}, col={} already opened", row, col);
             throw new IllegalStateException("Cell already opened");
         }
 
