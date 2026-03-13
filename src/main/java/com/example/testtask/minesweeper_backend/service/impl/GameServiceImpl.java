@@ -1,17 +1,15 @@
 package com.example.testtask.minesweeper_backend.service.impl;
 
-import java.util.Objects;
-import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
 import com.example.testtask.minesweeper_backend.dao.GameRepository;
-import com.example.testtask.minesweeper_backend.dao.InMemoryGameRepository;
 import com.example.testtask.minesweeper_backend.entity.Cell;
 import com.example.testtask.minesweeper_backend.entity.Game;
 import com.example.testtask.minesweeper_backend.entity.GameState;
+import com.example.testtask.minesweeper_backend.exception.GameException;
 import com.example.testtask.minesweeper_backend.service.GameService;
 
 import jakarta.transaction.Transactional;
@@ -29,7 +27,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class GameServiceImpl implements GameService {
 
-    // private final InMemoryGameRepository repository;
     private final GameRepository repository;
 
     public GameServiceImpl(GameRepository repository){
@@ -38,6 +35,13 @@ public class GameServiceImpl implements GameService {
 
     @Override
     public Game createGame(int rows, int cols, int minesCount) {
+
+        int maxMines = rows * cols - 1;
+        if(minesCount > maxMines) {
+            String message = String.format("количество мин должно быть не менее 1 и не более %d", maxMines);
+            throw new GameException(message);
+        }
+
         Game game = Game.builder()
             .rows(rows)
             .cols(cols)
@@ -66,20 +70,20 @@ public class GameServiceImpl implements GameService {
     public Game makeMove(UUID id, int row, int col) {
         Game game = repository.findById(id)
             .orElseThrow(() -> {
-                log.error("[Minesweeper Service] Game with uuid={} not found", id);
-                throw new RuntimeException("Game not found");
+                log.error("[Minesweeper Service] - Game with uuid={} not found", id);
+                throw new GameException("игра не найдена");
             });
 
         if(game.getState() != GameState.ACTIVE) {
-            log.error("[Minesweeper Service] Game with uuid={} alredy end", id);
-            throw new RuntimeException("Game alredy end");
+            log.error("[Minesweeper Service] - Game with uuid={} alredy end", id);
+            throw new GameException("игра завершена");
         }
 
         processTurnLogic(game, row, col);
 
         Game updated = repository.save(game);
 
-        log.info("[Minesweeper Service] Make move row={}, col={} made on game uuid={}", row, col, id);
+        log.info("[Minesweeper Service] - Make move row={}, col={} made on game uuid={}", row, col, id);
         return updated;
     }
 
@@ -158,14 +162,14 @@ public class GameServiceImpl implements GameService {
 
         if(row < 0 || row >= game.getRows() || col < 0 || col >= game.getCols()) {
             log.warn("[Minesweeper Service] - Illegal coordinates row={}, col={}", row, col);
-            throw new IllegalArgumentException("Illegal coordinates");
+            throw new GameException("неверные координаты");
         }
 
         Cell clicked = board[row][col];
 
         if(clicked.isRevealed()) {
             log.warn("[Minesweeper Service] - Cell row={}, col={} already opened", row, col);
-            throw new IllegalStateException("Cell already opened");
+            throw new GameException("нельзя открыть уже открытую ячейку");
         }
 
         if(clicked.isMine()) {
@@ -197,6 +201,7 @@ public class GameServiceImpl implements GameService {
                 }
             }
         }
+        log.info("[Minesweeper Service] - Win the game of uuid={}", game.getId());
         return true;
     }
 
