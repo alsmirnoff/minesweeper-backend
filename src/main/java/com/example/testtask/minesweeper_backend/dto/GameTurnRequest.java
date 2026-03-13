@@ -16,8 +16,8 @@ public class GameTurnRequest {
     private UUID game_id;
 
     @NotNull
-    private Integer row;
+    private Integer col;
 
     @NotNull
-    private Integer col;
+    private Integer row;
 }

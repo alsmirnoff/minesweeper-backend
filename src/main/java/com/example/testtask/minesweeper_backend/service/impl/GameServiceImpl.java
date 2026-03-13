@@ -1,62 +1,74 @@
 package com.example.testtask.minesweeper_backend.service.impl;
 
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
+import com.example.testtask.minesweeper_backend.dao.GameRepository;
 import com.example.testtask.minesweeper_backend.dao.InMemoryGameRepository;
 import com.example.testtask.minesweeper_backend.entity.Cell;
 import com.example.testtask.minesweeper_backend.entity.Game;
 import com.example.testtask.minesweeper_backend.entity.GameState;
 import com.example.testtask.minesweeper_backend.service.GameService;
 
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
+
+/**
+ * Система координат:
+ * - Доска: Cell[rows][cols], доступ board[row][col]
+ * - row: 0..height-1 (вертикаль, сверху вниз, y)
+ * - col: 0..width-1 (горизонталь, слева направо, x)
+ * - Все методы принимают параметры в порядке (row, col)
+ */
 
 @Service
 @Slf4j
 public class GameServiceImpl implements GameService {
 
-    private final InMemoryGameRepository repository;
+    // private final InMemoryGameRepository repository;
+    private final GameRepository repository;
 
-    public GameServiceImpl(InMemoryGameRepository repository){
+    public GameServiceImpl(GameRepository repository){
         this.repository = repository;
     }
 
     @Override
-    public Game createGame(int width, int height, int minesCount) {
-        Game game = new Game();
-        game.setId(UUID.randomUUID());
-        game.setRows(width);
-        game.setCols(height);
-        game.setMinesCount(minesCount);
-        game.setState(GameState.ACTIVE);
+    public Game createGame(int rows, int cols, int minesCount) {
+        Game game = Game.builder()
+            .rows(rows)
+            .cols(cols)
+            .minesCount(minesCount)
+            .state(GameState.ACTIVE)
+            .board(new Cell[rows][cols])
+            .build();
 
-        Cell board[][] = new Cell[game.getRows()][game.getCols()];
-        for (int i = 0; i < game.getRows(); i++) {
-            for (int j = 0; j < game.getCols(); j++) {
-                board[i][j] = new Cell();
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                game.getBoard()[i][j] = new Cell();
             }
         }
-        game.setBoard(board);
-        
+
         placeMinesRandomly(game);
         calculateMinesAround(game);
 
-        repository.save(game);
+        Game saved = repository.save(game);
 
-        log.info("[Minesweeper Service] - Creating a game of uuid={}", game.getId());
-        return game;
+        log.info("[Minesweeper Service] - Creating a game of uuid={}", saved.getId());
+        return saved;
     }
 
     @Override
+    @Transactional
     public Game makeMove(UUID id, int row, int col) {
-        Game game = repository.findById(id);
-
-        if(game == null){
-            log.error("[Minesweeper Service] Game with uuid={} not found", id);
-            throw new RuntimeException("Game not found");
-        }
+        Game game = repository.findById(id)
+            .orElseThrow(() -> {
+                log.error("[Minesweeper Service] Game with uuid={} not found", id);
+                throw new RuntimeException("Game not found");
+            });
 
         if(game.getState() != GameState.ACTIVE) {
             log.error("[Minesweeper Service] Game with uuid={} alredy end", id);
@@ -65,9 +77,10 @@ public class GameServiceImpl implements GameService {
 
         processTurnLogic(game, row, col);
 
-        repository.save(game);
-        log.info("[Minesweeper Service] Move x={}, y={} made on game uuid={}", row, col, id);
-        return game;
+        Game updated = repository.save(game);
+
+        log.info("[Minesweeper Service] Make move row={}, col={} made on game uuid={}", row, col, id);
+        return updated;
     }
 
     private void placeMinesRandomly(Game game) {
@@ -97,44 +110,46 @@ public class GameServiceImpl implements GameService {
 
     private int minesNear(Cell[][] board, int row, int col) {
         int mines = 0;
-        mines += minesAt(board, col - 1, row - 1);
-        mines += minesAt(board, col - 1, row);
-        mines += minesAt(board, col - 1, row + 1);
-        mines += minesAt(board, col, row + 1);
-        mines += minesAt(board, col + 1, row + 1);
-        mines += minesAt(board, col + 1, row);
-        mines += minesAt(board, col + 1, row - 1);
-        mines += minesAt(board, col, row - 1);
+        mines += minesAt(board, row - 1, col - 1);
+        mines += minesAt(board, row, col - 1);
+        mines += minesAt(board, row + 1, col - 1);
+        mines += minesAt(board, row + 1, col);
+        mines += minesAt(board, row + 1, col + 1);
+        mines += minesAt(board, row, col + 1);
+        mines += minesAt(board, row - 1, col + 1);
+        mines += minesAt(board, row - 1, col);
         return mines;
     }
 
 
     private int minesAt(Cell[][] board, int row, int col) {
-        if(row >= 0 && row < board[0].length && col >= 0 && col < board.length && board[col][row].isMine()) {
-            return 1;
-        } else {
-            return 0;
-        }
+        if (row >= 0 && row < board.length && 
+            col >= 0 && col < board[0].length && 
+            board[row][col].isMine()) {
+                return 1;
+            }
+        return 0;
     }
 
     private void revealArea(Cell[][] board, int row, int col) {
-        if(col < 0 || col >= board.length || row < 0 || row >= board[0].length) return;
+        if (row < 0 || row >= board.length || 
+            col < 0 || col >= board[0].length) return;
 
-        Cell cell = board[col][row];
+        Cell cell = board[row][col];
 
         if(cell.isRevealed()) return;
 
         cell.setRevealed(true);
 
         if(cell.getMinesAround() == 0) {
-            revealArea(board, col - 1, row - 1);
-            revealArea(board, col - 1, row);
-            revealArea(board, col - 1, row + 1);
-            revealArea(board, col, row + 1);
-            revealArea(board, col + 1, row + 1);
-            revealArea(board, col + 1, row);
-            revealArea(board, col + 1, row - 1);
-            revealArea(board, col, row - 1);
+            revealArea(board, row - 1, col - 1);
+            revealArea(board, row, col - 1);
+            revealArea(board, row + 1, col - 1);
+            revealArea(board, row + 1, col);
+            revealArea(board, row + 1, col + 1);
+            revealArea(board, row, col + 1);
+            revealArea(board, row - 1, col + 1);
+            revealArea(board, row - 1, col);
         }
     }
 
@@ -188,6 +203,7 @@ public class GameServiceImpl implements GameService {
     private void revealAllMines(Cell[][] board) {
         for (Cell[] row : board) {
             for (Cell cell : row) {
+                cell.setRevealed(true);
                 if(cell.isMine()) {
                     cell.setRevealed(true);
                 }
