@@ -11,6 +11,7 @@ import com.example.testtask.minesweeper_backend.entity.Game;
 import com.example.testtask.minesweeper_backend.entity.GameState;
 import com.example.testtask.minesweeper_backend.exception.GameException;
 import com.example.testtask.minesweeper_backend.service.GameService;
+import com.example.testtask.minesweeper_backend.service.MinesPlacer;
 
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -28,9 +29,11 @@ import lombok.extern.slf4j.Slf4j;
 public class GameServiceImpl implements GameService {
 
     private final GameRepository repository;
+    private final MinesPlacer minesPlacer;
 
-    public GameServiceImpl(GameRepository repository){
+    public GameServiceImpl(GameRepository repository, MinesPlacer minesPlacer){
         this.repository = repository;
+        this.minesPlacer = minesPlacer;
     }
 
     @Override
@@ -56,7 +59,10 @@ public class GameServiceImpl implements GameService {
             }
         }
 
-        placeMinesRandomly(game);
+        minesPlacer.placeMines(game.getBoard(), game.getRows(), game.getCols(), game.getMinesCount());
+        log.info("[Minesweeper Service] - Placed random mines for game of uuid={}", game.getId());
+
+        // placeMinesRandomly(game);
         calculateMinesAround(game);
 
         Game saved = repository.save(game);
@@ -87,20 +93,20 @@ public class GameServiceImpl implements GameService {
         return updated;
     }
 
-    private void placeMinesRandomly(Game game) {
-        int minesPlaced = 0;
-        Cell[][] board = game.getBoard();
-        Random random = new Random();
-        while(minesPlaced < game.getMinesCount()) {
-            int r = random.nextInt(game.getRows());
-            int c = random.nextInt(game.getCols());
-            if(!board[r][c].isMine()) {
-                board[r][c].setMine(true);
-                minesPlaced++;
-            }
-        }
-        log.info("[Minesweeper Service] - Placed random mines for game of uuid={}", game.getId());
-    }
+    // private void placeMinesRandomly(Game game) {
+    //     int minesPlaced = 0;
+    //     Cell[][] board = game.getBoard();
+    //     Random random = new Random();
+    //     while(minesPlaced < game.getMinesCount()) {
+    //         int r = random.nextInt(game.getRows());
+    //         int c = random.nextInt(game.getCols());
+    //         if(!board[r][c].isMine()) {
+    //             board[r][c].setMine(true);
+    //             minesPlaced++;
+    //         }
+    //     }
+    //     log.info("[Minesweeper Service] - Placed random mines for game of uuid={}", game.getId());
+    // }
 
     private void calculateMinesAround(Game game) {
         Cell[][] board = game.getBoard();
