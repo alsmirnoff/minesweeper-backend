@@ -30,12 +30,12 @@ public class GameController {
 
     @PostMapping("/new")
     public ResponseEntity<GameInfoResponse> createGame(@RequestBody @Valid NewGameRequest request) {
-        log.info("[Minesweeper Controller] - Creating game {}x{}, mines={}", request.getHeight(), request.getWidth(), request.getMines_count());
+        log.info("[Minesweeper Controller] - Creating game {}x{}, mines={}", request.height(), request.width(), request.mines_count());
 
         Game game = gameService.createGame(
-            request.getHeight(), 
-            request.getWidth(), 
-            request.getMines_count()
+            request.height(), 
+            request.width(), 
+            request.mines_count()
         );
         
         return ResponseEntity.ok(gameMapper.toResponse(game));
@@ -43,12 +43,12 @@ public class GameController {
 
     @PostMapping("/turn")
     public ResponseEntity<GameInfoResponse> makeTurn(@RequestBody @Valid GameTurnRequest request) {
-        log.info("[Minesweeper Controller] - Turn: game={}, row={}, col={}", request.getGame_id(), request.getRow(), request.getCol());
+        log.info("[Minesweeper Controller] - Turn: game={}, row={}, col={}", request.game_id(), request.row(), request.col());
 
         Game game = gameService.makeMove(
-            request.getGame_id(), 
-            request.getRow(), 
-            request.getCol()
+            request.game_id(), 
+            request.row(), 
+            request.col()
         );
 
         return ResponseEntity.ok(gameMapper.toResponse(game));

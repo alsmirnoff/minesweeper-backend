@@ -40,13 +40,22 @@ public class GameMapper {
     }
 
     public GameInfoResponse toResponse(Game game) {
-        return GameInfoResponse.builder()
-            .game_id(game.getId())
-            .width(game.getCols())
-            .height(game.getRows())
-            .mines_count(game.getMinesCount())
-            .completed(game.getState() != GameState.ACTIVE)
-            .field(convertBoardToField(game.getBoard(), game.getState()))
-            .build();
+        return new GameInfoResponse(
+                    game.getId(), 
+                    game.getCols(), 
+                    game.getRows(), 
+                    game.getMinesCount(),
+                    game.getState() != GameState.ACTIVE,
+                    convertBoardToField(game.getBoard(), game.getState())
+        );
+        
+            // .builder()
+            // .game_id(game.getId())
+            // .width(game.getCols())
+            // .height(game.getRows())
+            // .mines_count(game.getMinesCount())
+            // .completed(game.getState() != GameState.ACTIVE)
+            // .field(convertBoardToField(game.getBoard(), game.getState()))
+            // .build();
     }
 }

@@ -62,23 +62,23 @@ public class GameApiIntegrationTest {
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertNotNull(response.getBody().getGame_id());
-        assertEquals(2, response.getBody().getWidth());
+        assertNotNull(response.getBody().game_id());
+        assertEquals(2, response.getBody().width());
 
     }
 
     @Test
     public void testCreateGame_AndMakeMove_Returns200() {
         GameInfoResponse game = createGame(2, 2, 1);
-        assertNotNull(game.getGame_id());
+        assertNotNull(game.game_id());
 
-        GameTurnRequest firstMove = new GameTurnRequest(game.getGame_id(), 0, 0);
+        GameTurnRequest firstMove = new GameTurnRequest(game.game_id(), 0, 0);
         ResponseEntity<GameInfoResponse> moveResponse = restTemplate.postForEntity(
             "/api/turn", firstMove, GameInfoResponse.class);
 
         assertEquals(HttpStatus.OK, moveResponse.getStatusCode());
         assertNotNull(moveResponse.getBody());
-        assertNotNull(moveResponse.getBody().getGame_id());
+        assertNotNull(moveResponse.getBody().game_id());
 
     }
 
@@ -86,7 +86,7 @@ public class GameApiIntegrationTest {
     public void testMakeMove_OnRevealed_Returns400() {
         GameInfoResponse game = createGame(2, 2, 1);
 
-        GameTurnRequest firstMove = new GameTurnRequest(game.getGame_id(), 0, 0);
+        GameTurnRequest firstMove = new GameTurnRequest(game.game_id(), 0, 0);
         ResponseEntity<GameInfoResponse> moveResponse = restTemplate.postForEntity(
             "/api/turn", firstMove, GameInfoResponse.class);
 
@@ -95,7 +95,7 @@ public class GameApiIntegrationTest {
 
         assertEquals(HttpStatus.BAD_REQUEST, errorResponse.getStatusCode());
         assertNotNull(errorResponse.getBody());
-        assertNotNull(errorResponse.getBody().getError());
+        assertNotNull(errorResponse.getBody().error());
 
     }
 
@@ -103,14 +103,14 @@ public class GameApiIntegrationTest {
     public void testMakeMove_OnMine_ReturnsLostState() {
         GameInfoResponse game = createGame(2, 2, 1);
 
-        GameTurnRequest firstMove = new GameTurnRequest(game.getGame_id(), 1, 1);
+        GameTurnRequest firstMove = new GameTurnRequest(game.game_id(), 1, 1);
         ResponseEntity<GameInfoResponse> moveResponse = restTemplate.postForEntity(
             "/api/turn", firstMove, GameInfoResponse.class);
 
         assertEquals(HttpStatus.OK, moveResponse.getStatusCode());
-        assertNotNull(moveResponse.getBody().isCompleted());
+        assertNotNull(moveResponse.getBody().completed());
 
-        assertEquals("X", moveResponse.getBody().getField()[1][1]);
+        assertEquals("X", moveResponse.getBody().field()[1][1]);
 
     }
 
@@ -118,22 +118,22 @@ public class GameApiIntegrationTest {
     public void testMakeMoves_ReturnsWinState() {
         GameInfoResponse game = createGame(2, 2, 1);
 
-        GameTurnRequest firstMove = new GameTurnRequest(game.getGame_id(), 0, 0);
+        GameTurnRequest firstMove = new GameTurnRequest(game.game_id(), 0, 0);
         ResponseEntity<GameInfoResponse> firstMoveResponse = restTemplate.postForEntity(
             "/api/turn", firstMove, GameInfoResponse.class);
 
-        GameTurnRequest secondMove = new GameTurnRequest(game.getGame_id(), 0, 1);
+        GameTurnRequest secondMove = new GameTurnRequest(game.game_id(), 0, 1);
         ResponseEntity<GameInfoResponse> secondMoveResponse = restTemplate.postForEntity(
             "/api/turn", secondMove, GameInfoResponse.class);
 
-        GameTurnRequest thirdMove = new GameTurnRequest(game.getGame_id(), 1, 0);
+        GameTurnRequest thirdMove = new GameTurnRequest(game.game_id(), 1, 0);
         ResponseEntity<GameInfoResponse> thirdMoveResponse = restTemplate.postForEntity(
             "/api/turn", thirdMove, GameInfoResponse.class);
 
         assertEquals(HttpStatus.OK, thirdMoveResponse.getStatusCode());
-        assertNotNull(thirdMoveResponse.getBody().isCompleted());
+        assertNotNull(thirdMoveResponse.getBody().completed());
 
-        assertEquals("M", thirdMoveResponse.getBody().getField()[1][1]);
+        assertEquals("M", thirdMoveResponse.getBody().field()[1][1]);
 
     }
 
